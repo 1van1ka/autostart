@@ -50,15 +50,6 @@ struct AppQueue {
 
 struct AppQueue app_queue = {.count = 0};
 
-static volatile sig_atomic_t child_exited = 0;
-
-void handle_child() {
-  child_exited = 1;
-  // Reap child processes to avoid zombies
-  while (waitpid(-1, NULL, WNOHANG) > 0) {
-  }
-}
-
 /**
  * Removes leading and trailing whitespace from a string
  * @param str String to trim (modified in place)
