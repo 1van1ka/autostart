@@ -1,4 +1,5 @@
 /build/
+autostart
 *.o
 
 !.gitkeep
