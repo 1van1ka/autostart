@@ -344,7 +344,7 @@ void launch_queued_apps() {
                           .tv_nsec = (delay % 1000) * 1000000L};
     nanosleep(&ts, NULL);
 
-    printf("[%d/%d] ", i, app_queue.count);
+    printf("[%d/%d] ", i + 1, app_queue.count);
 
     if (run_command(app_queue.apps[i].exec, app_queue.apps[i].path)) {
       printf("Access ");
