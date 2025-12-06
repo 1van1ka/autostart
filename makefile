@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -std=c17 -D_POSIX_C_SOURCE=200809L
-LDFLAGS = -lpthread
+LDFLAGS =
 TARGET = autostart
 SOURCES = autostart.c
 OBJ = autostart.o
