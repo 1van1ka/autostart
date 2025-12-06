@@ -231,7 +231,11 @@ void run_command(const char *exec_cmd, const char *work_dir) {
 
   // Use wordexp for proper expansion
   glob_t p = {0};
-  if (glob(cmd, GLOB_NOCHECK | (1 << 12), NULL, &p) != 0) {
+#ifdef GLOB_TILDE
+  if (glob(cmd, GLOB_NOCHECK | GLOB_TILDE, NULL, &p) != 0) {
+#else
+  if (glob(cmd, GLOB_NOCHECK, NULL, &p) != 0) {
+#endif
     fprintf(stderr, "  Failed to parse command: %s\n", cmd);
     return;
   }
