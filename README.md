@@ -91,38 +91,43 @@ Scanning directories:
 
 
 [Directory 1] Scanning: /home/ivanika/.config/autostart
-  Queued: Discord
   Queued: Telegram
+  Queued: Simple Terminal
+  Queued: Simple Terminal
+  Queued: Simple Terminal
   Queued: NetworkManager Applet
 
   --- Summary for /home/ivanika/.config/autostart ---
-  Total .desktop files found: 3
-  Queued for launch: 3
+  Total .desktop files found: 5
+  Queued for launch: 5
   Skipped: 0
 
 [Directory 2] Scanning: /etc/xdg/autostart
   Skipped (hidden/no-display): AT-SPI D-Bus Bus
   Skipped (hidden/no-display): User folders update
+  Queued: xfce-polkit
   Skipped (hidden/no-display): NetworkManager Applet
 
   --- Summary for /etc/xdg/autostart ---
-  Total .desktop files found: 3
-  Queued for launch: 0
+  Total .desktop files found: 4
+  Queued for launch: 1
   Skipped: 3
 
 Warning: Autostart directory does not exist: /usr/share/autostart
 
 ========================================
-Launching 3 applications with 200ms delay
+Launching 6 applications with 200ms delay
+[0/6] Access launching: Telegram
+[1/6] Access launching: Simple Terminal
+[2/6] Access launching: Simple Terminal
+[3/6] Access launching: Simple Terminal
+[4/6] Access launching: NetworkManager Applet
+[5/6] Access launching: xfce-polkit
 ========================================
-Thread 0: Launching: Discord
-Thread 1: Launching: Telegram
-Thread 2: Launching: NetworkManager Applet
-All launch threads initiated
-
-========================================
-All autostart applications processed.
-========================================
+Launch completed
+Total:      6
+Successful: 6
+Failed:     0
 ```
 
 ## Performance
