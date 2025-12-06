@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -std=gnu11 -D_POSIX_C_SOURCE=200809L
+CFLAGS = -Wall -Wextra -O2 -std=c17 -D_POSIX_C_SOURCE=200809L
 LDFLAGS = -lpthread
 TARGET = autostart
 SOURCES = autostart.c

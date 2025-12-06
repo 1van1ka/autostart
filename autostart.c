@@ -307,7 +307,7 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
   DIR *dir = opendir(autostart_dir);
 
   if (!dir) {
-    fprintf(stderr, "Warning: Autostart directory does not exist: %s\n",
+    fprintf(stderr, "\nWarning: Autostart directory does not exist: %s\n",
             autostart_dir);
     return 0;
   }
