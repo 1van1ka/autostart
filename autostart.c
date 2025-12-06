@@ -15,7 +15,6 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
-#include <glob.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -214,6 +213,10 @@ int check_tryexec(const char *tryexec) {
  * @param work_dir Working directory for the command (NULL for current)
  */
 int run_command(const char *exec_cmd, const char *work_dir) {
+  if (!exec_cmd || !*exec_cmd) {
+    return 0;
+  }
+
   char cmd[MAX_PATH];
   strncpy(cmd, exec_cmd, sizeof(cmd) - 1);
   cmd[sizeof(cmd) - 1] = '\0';
@@ -221,53 +224,36 @@ int run_command(const char *exec_cmd, const char *work_dir) {
   // Remove desktop file specifiers
   remove_desktop_specifiers(cmd);
 
-  // Use wordexp for proper expansion
-  glob_t p = {0};
-#ifdef GLOB_TILDE
-  if (glob(cmd, GLOB_NOCHECK | GLOB_TILDE, NULL, &p) != 0) {
-#else
-  if (glob(cmd, GLOB_NOCHECK, NULL, &p) != 0) {
-#endif
-    fprintf(stderr, "  Failed to parse command: %s\n", cmd);
-    return 0;
-  }
-
-  if (p.gl_pathc == 0) {
-    globfree(&p);
-    fprintf(stderr, "  Empty command after parsing\n");
-    return 0;
-  }
-
   pid_t pid = fork();
 
   if (pid == 0) {
+    // Ignore signals that could cause coredump (из оригинального кода)
+    signal(SIGSEGV, SIG_IGN);
+    signal(SIGABRT, SIG_IGN);
+    signal(SIGILL, SIG_IGN);
+
     // Start new session to detach from terminal
     setsid();
 
-    if (work_dir && strlen(work_dir) > 0) {
+    // Change working directory if specified
+    if (work_dir && *work_dir) {
       if (chdir(work_dir) != 0) {
-        fprintf(stderr, "  Failed to change directory to %s\n", work_dir);
+        // Error message before closing descriptors
+        fprintf(stderr, "Failed to chdir to %s: %s\n", work_dir,
+                strerror(errno));
       }
     }
 
-    // Close standard file descriptors to detach from terminal
+    // Close standard file descriptors
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
 
-    // Execute the command
-    execvp(p.gl_pathv[0], p.gl_pathv);
-
-    // If execvp returns, there was an error
-    // We can't use fprintf here because we closed stderr
-    exit(EXIT_FAILURE);
-  } else if (pid > 0) {
-    // Parent process - don't wait for child
-  } else {
-    fprintf(stderr, "  Fork failed: %s\n", strerror(errno));
+    // Execute with sh
+    execlp("sh", "sh", "-c", cmd, (char *)NULL);
   }
-  globfree(&p);
-  return 1;
+
+  return (pid > 0);
 }
 
 /**
