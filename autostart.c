@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <glob.h>
 #include <pthread.h>
 #include <pwd.h>
 #include <signal.h>
@@ -26,7 +27,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <wordexp.h>
 
 #define MAX_LINE 1024
 #define MAX_PATH 2048
@@ -229,15 +229,15 @@ void run_command(const char *exec_cmd, const char *work_dir) {
   // Remove desktop file specifiers
   remove_desktop_specifiers(cmd);
 
-  // Use wordexp for proper shell expansion
-  wordexp_t p;
-  if (wordexp(cmd, &p, WRDE_NOCMD | WRDE_UNDEF) != 0) {
+  // Use wordexp for proper expansion
+  glob_t p = {0};
+  if (glob(cmd, GLOB_NOCHECK | (1 << 12), NULL, &p) != 0) {
     fprintf(stderr, "  Failed to parse command: %s\n", cmd);
     return;
   }
 
-  if (p.we_wordc == 0) {
-    wordfree(&p);
+  if (p.gl_pathc == 0) {
+    globfree(&p);
     fprintf(stderr, "  Empty command after parsing\n");
     return;
   }
@@ -260,7 +260,7 @@ void run_command(const char *exec_cmd, const char *work_dir) {
     close(STDERR_FILENO);
 
     // Execute the command
-    execvp(p.we_wordv[0], p.we_wordv);
+    execvp(p.gl_pathv[0], p.gl_pathv);
 
     // If execvp returns, there was an error
     // We can't use fprintf here because we closed stderr
@@ -270,7 +270,7 @@ void run_command(const char *exec_cmd, const char *work_dir) {
   } else {
     fprintf(stderr, "  Fork failed: %s\n", strerror(errno));
   }
-  wordfree(&p);
+  globfree(&p);
 }
 
 /**
