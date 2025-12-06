@@ -30,7 +30,6 @@
 
 #define MAX_LINE 1024
 #define MAX_PATH 2048
-#define MAX_ARGS 128
 #define MAX_APPS 100
 #define DELAY_MS 200
 
