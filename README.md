@@ -1,7 +1,5 @@
-README for project autostart
+Autostart Launcher
 ========================
-# Autostart Launcher
-
 A lightweight C program that scans and launches applications from XDG autostart directories (.desktop files) with proper dependency checking and staggered startup delays.
 ___
 ## Features
