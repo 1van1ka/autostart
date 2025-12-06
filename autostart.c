@@ -16,7 +16,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <glob.h>
-#include <pthread.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -45,16 +44,9 @@ struct DesktopEntry {
   int valid;
 };
 
-struct ThreadArg {
-  struct DesktopEntry entry;
-  int thread_num;
-  int total_threads;
-};
-
 struct AppQueue {
   struct DesktopEntry apps[MAX_APPS];
   int count;
-  pthread_mutex_t lock;
 };
 
 struct AppQueue app_queue = {.count = 0};
@@ -221,7 +213,7 @@ int check_tryexec(const char *tryexec) {
  * @param exec_cmd Command string to execute
  * @param work_dir Working directory for the command (NULL for current)
  */
-void run_command(const char *exec_cmd, const char *work_dir) {
+int run_command(const char *exec_cmd, const char *work_dir) {
   char cmd[MAX_PATH];
   strncpy(cmd, exec_cmd, sizeof(cmd) - 1);
   cmd[sizeof(cmd) - 1] = '\0';
@@ -237,13 +229,13 @@ void run_command(const char *exec_cmd, const char *work_dir) {
   if (glob(cmd, GLOB_NOCHECK, NULL, &p) != 0) {
 #endif
     fprintf(stderr, "  Failed to parse command: %s\n", cmd);
-    return;
+    return 0;
   }
 
   if (p.gl_pathc == 0) {
     globfree(&p);
     fprintf(stderr, "  Empty command after parsing\n");
-    return;
+    return 0;
   }
 
   pid_t pid = fork();
@@ -275,30 +267,7 @@ void run_command(const char *exec_cmd, const char *work_dir) {
     fprintf(stderr, "  Fork failed: %s\n", strerror(errno));
   }
   globfree(&p);
-}
-
-/**
- * Thread function to launch a single application with delay
- * @param arg ThreadArg structure containing application details
- * @return NULL
- */
-void *launch_app_thread(void *arg) {
-  struct ThreadArg *thread_arg = (struct ThreadArg *)arg;
-  struct DesktopEntry *entry = &thread_arg->entry;
-
-  // Calculate delay based on thread number
-  int delay_ms = thread_arg->thread_num * DELAY_MS;
-
-  // Sleep for the calculated delay
-  struct timespec ts = {.tv_sec = delay_ms / 1000,
-                        .tv_nsec = (delay_ms % 1000) * 1000000L};
-  nanosleep(&ts, NULL);
-
-  printf("Thread %d: Launching: %s\n", thread_arg->thread_num, entry->name);
-  run_command(entry->exec, entry->path);
-
-  free(thread_arg);
-  return NULL;
+  return 1;
 }
 
 /**
@@ -350,7 +319,6 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
       }
 
       // Add to queue if there's space
-      pthread_mutex_lock(&app_queue.lock);
       if (app_queue.count < MAX_APPS) {
         app_queue.apps[app_queue.count] = de;
         app_queue.count++;
@@ -359,7 +327,6 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
       } else {
         fprintf(stderr, "  Queue full, cannot queue: %s\n", de.name);
       }
-      pthread_mutex_unlock(&app_queue.lock);
     }
   }
 
@@ -377,6 +344,8 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
  * Launches all queued applications using threads with staggered delays
  */
 void launch_queued_apps() {
+  int success_count = 0;
+
   if (app_queue.count == 0) {
     printf("\nNo applications to launch.\n");
     return;
@@ -385,55 +354,35 @@ void launch_queued_apps() {
   printf("\n========================================\n");
   printf("Launching %d applications with %dms delay\n", app_queue.count,
          DELAY_MS);
-  printf("========================================\n");
-
-  pthread_t threads[app_queue.count];
-  int threads_created = 0;
 
   // Create a thread for each application
   for (int i = 0; i < app_queue.count; i++) {
-    struct ThreadArg *arg = malloc(sizeof(struct ThreadArg));
-    if (!arg) {
-      fprintf(stderr, "Failed to allocate memory for thread argument\n");
-      continue;
-    }
-
-    arg->entry = app_queue.apps[i];
-    arg->thread_num = i;
-    arg->total_threads = app_queue.count;
-
-    if (pthread_create(&threads[i], NULL, launch_app_thread, arg) != 0) {
-      fprintf(stderr, "Failed to create thread for: %s\n", arg->entry.name);
-      free(arg);
-      continue;
-    }
-
-    threads_created++;
-
-    // Small delay between thread creation to avoid overwhelming the system
-    struct timespec ts = {.tv_sec = 0, .tv_nsec = 10000000L}; // 10ms
+    int delay = i ? DELAY_MS : 0;
+    // Sleep for the calculated delay
+    struct timespec ts = {.tv_sec = delay / 1000,
+                          .tv_nsec = (delay % 1000) * 1000000L};
     nanosleep(&ts, NULL);
-  }
 
-  // Give threads time to start their delays
-  sleep(1);
+    printf("[%d/%d] ", i, app_queue.count);
+
+    if (run_command(app_queue.apps[i].exec, app_queue.apps[i].path)) {
+      printf("Access ");
+      success_count++;
+    } else {
+      printf("Deny ");
+    }
+    printf("launching: %s\n", app_queue.apps[i].name);
+  }
 
   // Calculate maximum expected time
-  printf("All launch threads initiated\n");
-
-  // We don't join threads because they run independently
-  // but we need to ensure they complete
-  for (int i = 0; i < threads_created; i++) {
-    pthread_detach(threads[i]);
-  }
+  printf("========================================\n");
+  printf("Launch completed\n");
+  printf("Total:      %d\n", app_queue.count);
+  printf("Successful: %d\n", success_count);
+  printf("Failed:     %d\n", app_queue.count - success_count);
 }
 
 int main() {
-  if (pthread_mutex_init(&app_queue.lock, NULL) != 0) {
-    fprintf(stderr, "Mutex initialization failed\n");
-    return 1;
-  }
-
   // Get home directory
   const char *home = getenv("HOME");
   if (!home) {
@@ -473,13 +422,6 @@ int main() {
 
   // Launch queued applications with staggered delays
   launch_queued_apps();
-
-  // Cleanup
-  pthread_mutex_destroy(&app_queue.lock);
-
-  printf("\n========================================\n");
-  printf("All autostart applications processed.\n");
-  printf("========================================\n");
 
   return 0;
 }
