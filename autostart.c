@@ -242,6 +242,10 @@ int run_command(const char *exec_cmd, const char *work_dir) {
 
     // Execute with sh
     execlp("sh", "sh", "-c", cmd, (char *)NULL);
+    execlp("bash", "bash", "-c", cmd, (char *)NULL);
+
+    // Exec failed
+    _exit(EXIT_FAILURE);
   }
 
   return (pid > 0);
