@@ -14,9 +14,8 @@ ___
 ## Installation
 ### Prerequisites
 
-- GCC compiler
+- C compiler
 - POSIX-compliant system (Linux, BSD)
-- Standard C library with pthread support
 
 ### Compilation
 
@@ -93,13 +92,11 @@ Scanning directories:
 [Directory 1] Scanning: /home/ivanika/.config/autostart
   Queued: Telegram
   Queued: Simple Terminal
-  Queued: Simple Terminal
-  Queued: Simple Terminal
   Queued: NetworkManager Applet
 
   --- Summary for /home/ivanika/.config/autostart ---
-  Total .desktop files found: 5
-  Queued for launch: 5
+  Total .desktop files found: 3
+  Queued for launch: 3
   Skipped: 0
 
 [Directory 2] Scanning: /etc/xdg/autostart
@@ -116,17 +113,15 @@ Scanning directories:
 Warning: Autostart directory does not exist: /usr/share/autostart
 
 ========================================
-Launching 6 applications with 200ms delay
-[0/6] Access launching: Telegram
-[1/6] Access launching: Simple Terminal
-[2/6] Access launching: Simple Terminal
-[3/6] Access launching: Simple Terminal
-[4/6] Access launching: NetworkManager Applet
-[5/6] Access launching: xfce-polkit
+Launching 4 applications with 200ms delay
+[1/4] Access launching: Telegram
+[2/4] Access launching: Simple Terminal
+[3/4] Access launching: NetworkManager Applet
+[4/4] Access launching: xfce-polkit
 ========================================
 Launch completed
-Total:      6
-Successful: 6
+Total:      4
+Successful: 4
 Failed:     0
 ```
 
@@ -144,4 +139,3 @@ This project is released under the MIT License. See LICENSE file for details.
 
 - Based on the [XDG Autostart Specification](https://specifications.freedesktop.org/autostart-spec/autostart-spec-latest.html)
 - Inspired by various desktop environment autostart implementations
-- Uses POSIX threading for parallel application launching
