@@ -12,6 +12,8 @@
  * - Supports both user (~/.config/autostart) and system (/etc/xdg/autostart)
  */
 
+#include "config.h"
+#include "util.h"
 #include <dirent.h>
 #include <errno.h>
 #include <pwd.h>
@@ -24,7 +26,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include "util.h"
 
 #define MAX_LINE 1024
 #define MAX_PATH 2048
@@ -48,8 +49,8 @@ struct AppQueue {
   int count;
 };
 
-struct AppQueue app_queue = {.count = 0};
-
+static struct AppQueue app_queue = {.count = 0};
+static struct Config cfg;
 
 /**
  * Parses a .desktop file into a DesktopEntry struct
@@ -245,6 +246,19 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
         continue;
       }
 
+      int allowed = 1;
+      for (int i = 0; i < cfg.app_count; i++) {
+        if (strcmp(cfg.apps[i].name, de.name) == 0) {
+          allowed = cfg.apps[i].allow;
+          break;
+        }
+      }
+
+      if (!allowed) {
+        printf("  Skipped (disallowed by config): %s\n", de.name);
+        continue;
+      }
+
       // Check if TryExec exists
       if (!check_tryexec(de.tryexec)) {
         printf("  Skipped (TryExec not found): %s\n", de.name);
@@ -290,7 +304,7 @@ void launch_queued_apps() {
 
   // Create a thread for each application
   for (int i = 0; i < app_queue.count; i++) {
-    int delay = i ? DELAY_MS : 0;
+    int delay = i ? cfg.delay_ms : cfg.startup_delay_ms;
     // Sleep for the calculated delay
     struct timespec ts = {.tv_sec = delay / 1000,
                           .tv_nsec = (delay % 1000) * 1000000L};
@@ -315,13 +329,18 @@ void launch_queued_apps() {
   printf("Failed:     %d\n", app_queue.count - success_count);
 }
 
-int main() {
+int main(int argc, char **argv) {
   // Get home directory
   const char *home = getenv("HOME");
   if (!home) {
     struct passwd *pw = getpwuid(getuid());
     home = pw->pw_dir;
   }
+
+  config_init(&cfg);
+
+  if (argc > 1)
+    config_load(&cfg, argv[1]);
 
   // Define autostart directories to scan
   char autostart_dirs[3][MAX_PATH];
@@ -336,11 +355,7 @@ int main() {
   // Alternative location (less common)
   snprintf(autostart_dirs[dir_count++], MAX_PATH, "/usr/share/autostart");
 
-  printf("Autostart Launcher\n");
-  printf("=============================================\n");
-  printf("Configuration:\n");
-  printf("  Delay between application starts: %dms\n", DELAY_MS);
-  printf("  Maximum applications: %d\n", MAX_APPS);
+  print_config(&cfg);
   printf("\nScanning directories:\n");
   for (int i = 0; i < dir_count; i++) {
     printf("  %d. %s\n", i + 1, autostart_dirs[i]);
@@ -348,9 +363,8 @@ int main() {
   printf("\n");
 
   // Scan directories and queue applications
-  int total_queued = 0;
   for (int i = 0; i < dir_count; i++) {
-    total_queued += scan_autostart_dir(autostart_dirs[i], i);
+    scan_autostart_dir(autostart_dirs[i], i);
   }
 
   // Launch queued applications with staggered delays
