@@ -1,20 +1,30 @@
 CC = cc
-CFLAGS = -Wall -Wextra -O2 -std=c17 -D_POSIX_C_SOURCE=200809L
-LDFLAGS =
+
+CFLAGS = -Wall -Wextra -O2 -std=c17 \
+				 -D_POSIX_C_SOURCE=200809L \
+				 -Iinclude
+
 TARGET = autostart
-SOURCES = autostart.c
-OBJ = autostart.o
+
+SRC_DIR := src
+OBJ_DIR := build
+
+SOURCES := $(wildcard $(SRC_DIR)/*.c)
+OBJECTS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SOURCES))
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS)
 
-$(OBJ): $(SOURCES)
-	$(CC) $(CFLAGS) -c $<
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
 clean:
-	rm -f $(TARGET) $(OBJ)
+	rm -rf $(OBJ_DIR) $(TARGET)
 
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/
