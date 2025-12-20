@@ -1,0 +1,20 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c17",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/config.o",
+      "src/config.c"
+    ],
+    "directory": "/home/ivanika/Projects/autostart",
+    "file": "/home/ivanika/Projects/autostart/src/config.c",
+    "output": "/home/ivanika/Projects/autostart/build/config.o"
+  }
+]
