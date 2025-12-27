@@ -30,7 +30,6 @@
 
 #define MAX_LINE 1024
 #define MAX_PATH 2048
-#define MAX_APPS 100
 #define DELAY_MS 200
 
 struct DesktopEntry {
@@ -52,15 +51,54 @@ struct Array {
 };
 
 struct AppQueue {
-  struct DesktopEntry apps[MAX_APPS];
-  int count;
+  struct DesktopEntry *apps;
+  size_t count;
+  size_t capacity;
 };
 
-static struct AppQueue app_queue = {.count = 0};
+static struct AppQueue app_queue;
 static struct Config cfg;
 static struct Array autostart_dirs;
 
-/* 
+/*
+ * Initialier array of autostart directories
+ * @param a dynamic array of autostart dirs
+ * @return None
+ */
+void app_queue_init(struct AppQueue *a) {
+  int size = 5;
+
+  a->apps = malloc(size * sizeof(struct DesktopEntry));
+  if (!a->apps) {
+    perror("malloc");
+    exit(1);
+  }
+  a->count = 0;
+  a->capacity = size;
+}
+
+/*
+ * Initialier array of autostart directories
+ * @param a dynamic array of autostart dirs
+ * @param path directory to copy in array
+ * @return None
+ */
+void app_queue_add(struct AppQueue *a, struct DesktopEntry entry) {
+  if (a->count == a->capacity) {
+    a->capacity *= 2;
+    struct DesktopEntry *tmp =
+        realloc(a->apps, a->capacity * sizeof(struct DesktopEntry));
+    if (!tmp) {
+      perror("realloc");
+      exit(1);
+    }
+    a->apps = tmp;
+  }
+
+  a->apps[a->count++] = entry;
+}
+
+/*
  * Cleaner autostart Array
  * @param None
  * @return None
@@ -71,13 +109,15 @@ void cleanup_autostart_dirs() {
   free(autostart_dirs.values);
 }
 
-/* 
+void cleanup_app_queue() { free(app_queue.apps); }
+/*
  * Cleaner all dynamic memory allocated
  * @param None
  * @return None
  */
 void cleanup() {
   cleanup_autostart_dirs();
+  cleanup_app_queue();
 }
 
 /**
@@ -294,14 +334,8 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
       }
 
       // Add to queue if there's space
-      if (app_queue.count < MAX_APPS) {
-        app_queue.apps[app_queue.count] = de;
-        app_queue.count++;
-        queued++;
-        printf("  Queued: %s\n", de.name);
-      } else {
-        fprintf(stderr, "  Queue full, cannot queue: %s\n", de.name);
-      }
+      app_queue_add(&app_queue, de);
+      printf("  Queued: %s\n", de.name);
     }
   }
 
@@ -327,18 +361,18 @@ void launch_queued_apps() {
   }
 
   printf("\n========================================\n");
-  printf("Launching %d applications with %dms delay\n", app_queue.count,
+  printf("Launching %ld applications with %dms delay\n", app_queue.count,
          DELAY_MS);
 
   // Create a thread for each application
-  for (int i = 0; i < app_queue.count; i++) {
+  for (size_t i = 0; i < app_queue.count; i++) {
     int delay = i ? cfg.delay_ms : cfg.startup_delay_ms;
     // Sleep for the calculated delay
     struct timespec ts = {.tv_sec = delay / 1000,
                           .tv_nsec = (delay % 1000) * 1000000L};
     nanosleep(&ts, NULL);
 
-    printf("[%d/%d] ", i + 1, app_queue.count);
+    printf("[%ld/%ld] ", i + 1, app_queue.count);
 
     if (run_command(app_queue.apps[i].exec, app_queue.apps[i].path)) {
       printf("Access ");
@@ -352,12 +386,12 @@ void launch_queued_apps() {
   // Calculate maximum expected time
   printf("========================================\n");
   printf("Launch completed\n");
-  printf("Total:      %d\n", app_queue.count);
+  printf("Total:      %ld\n", app_queue.count);
   printf("Successful: %d\n", success_count);
-  printf("Failed:     %d\n", app_queue.count - success_count);
+  printf("Failed:     %ld\n", app_queue.count - success_count);
 }
 
-/* 
+/*
  * Initialier array of autostart directories
  * @param a dynamic array of autostart dirs
  * @return None
@@ -374,7 +408,7 @@ void autostart_dirs_init(struct Array *a) {
   a->capacity = size;
 }
 
-/* 
+/*
  * Initialier array of autostart directories
  * @param a dynamic array of autostart dirs
  * @param path directory to copy in array
@@ -413,6 +447,7 @@ int main(int argc, char **argv) {
     config_load(&cfg, argv[1]);
 
   autostart_dirs_init(&autostart_dirs);
+  app_queue_init(&app_queue);
 
   char buf[MAX_PATH];
 
