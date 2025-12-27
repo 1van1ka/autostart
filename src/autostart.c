@@ -19,6 +19,7 @@
 #include <pwd.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -356,16 +357,29 @@ void launch_queued_apps() {
   printf("Failed:     %d\n", app_queue.count - success_count);
 }
 
-void autostart_dirs_init(struct Array *a, size_t capacity) {
-  a->values = malloc(capacity * sizeof(char *));
+/* 
+ * Initialier array of autostart directories
+ * @param a dynamic array of autostart dirs
+ * @return None
+ */
+void autostart_dirs_init(struct Array *a) {
+  int size = 5;
+
+  a->values = malloc(size * sizeof(char *));
   if (!a->values) {
     perror("malloc");
     exit(1);
   }
   a->count = 0;
-  a->capacity = capacity;
+  a->capacity = size;
 }
 
+/* 
+ * Initialier array of autostart directories
+ * @param a dynamic array of autostart dirs
+ * @param path directory to copy in array
+ * @return None
+ */
 void autostart_dirs_add(struct Array *a, const char *path) {
   if (a->count == a->capacity) {
     a->capacity *= 2;
@@ -398,7 +412,7 @@ int main(int argc, char **argv) {
   if (argc > 1)
     config_load(&cfg, argv[1]);
 
-  autostart_dirs_init(&autostart_dirs, 5);
+  autostart_dirs_init(&autostart_dirs);
 
   char buf[MAX_PATH];
 
