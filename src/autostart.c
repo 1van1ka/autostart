@@ -30,7 +30,6 @@
 
 #define MAX_LINE 1024
 #define MAX_PATH 2048
-#define DELAY_MS 200
 
 struct DesktopEntry {
   char name[256];
@@ -361,8 +360,7 @@ void launch_queued_apps() {
   }
 
   printf("\n========================================\n");
-  printf("Launching %ld applications with %dms delay\n", app_queue.count,
-         DELAY_MS);
+  printf("Launching %ld apps with %dms delay\n", app_queue.count, cfg.delay_ms);
 
   // Create a thread for each application
   for (size_t i = 0; i < app_queue.count; i++) {
@@ -383,7 +381,6 @@ void launch_queued_apps() {
     printf("launching: %s\n", app_queue.apps[i].name);
   }
 
-  // Calculate maximum expected time
   printf("========================================\n");
   printf("Launch completed\n");
   printf("Total:      %ld\n", app_queue.count);
