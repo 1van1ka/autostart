@@ -44,6 +44,12 @@ struct DesktopEntry {
   int valid;
 };
 
+struct Array {
+  char **values;
+  size_t count;
+  size_t capacity;
+};
+
 struct AppQueue {
   struct DesktopEntry apps[MAX_APPS];
   int count;
@@ -51,6 +57,27 @@ struct AppQueue {
 
 static struct AppQueue app_queue = {.count = 0};
 static struct Config cfg;
+static struct Array autostart_dirs;
+
+/* 
+ * Cleaner autostart Array
+ * @param None
+ * @return None
+ */
+void cleanup_autostart_dirs() {
+  for (size_t i = 0; i < autostart_dirs.count; i++)
+    free(autostart_dirs.values[i]);
+  free(autostart_dirs.values);
+}
+
+/* 
+ * Cleaner all dynamic memory allocated
+ * @param None
+ * @return None
+ */
+void cleanup() {
+  cleanup_autostart_dirs();
+}
 
 /**
  * Parses a .desktop file into a DesktopEntry struct
@@ -329,6 +356,35 @@ void launch_queued_apps() {
   printf("Failed:     %d\n", app_queue.count - success_count);
 }
 
+void autostart_dirs_init(struct Array *a, size_t capacity) {
+  a->values = malloc(capacity * sizeof(char *));
+  if (!a->values) {
+    perror("malloc");
+    exit(1);
+  }
+  a->count = 0;
+  a->capacity = capacity;
+}
+
+void autostart_dirs_add(struct Array *a, const char *path) {
+  if (a->count == a->capacity) {
+    a->capacity *= 2;
+    char **tmp = realloc(a->values, a->capacity * sizeof(char *));
+    if (!tmp) {
+      perror("realloc");
+      exit(1);
+    }
+    a->values = tmp;
+  }
+
+  a->values[a->count] = strdup(path);
+  if (!a->values[a->count]) {
+    perror("strdup");
+    exit(1);
+  }
+  a->count++;
+}
+
 int main(int argc, char **argv) {
   // Get home directory
   const char *home = getenv("HOME");
@@ -342,33 +398,31 @@ int main(int argc, char **argv) {
   if (argc > 1)
     config_load(&cfg, argv[1]);
 
-  // Define autostart directories to scan
-  char autostart_dirs[3][MAX_PATH];
-  int dir_count = 0;
+  autostart_dirs_init(&autostart_dirs, 5);
 
-  // User-specific autostart directory (highest priority)
-  snprintf(autostart_dirs[dir_count++], MAX_PATH, "%s/.config/autostart", home);
+  char buf[MAX_PATH];
 
-  // System-wide autostart directory
-  snprintf(autostart_dirs[dir_count++], MAX_PATH, "/etc/xdg/autostart");
-
-  // Alternative location (less common)
-  snprintf(autostart_dirs[dir_count++], MAX_PATH, "/usr/share/autostart");
+  snprintf(buf, MAX_PATH, "%s/.config/autostart", home);
+  autostart_dirs_add(&autostart_dirs, buf);
+  autostart_dirs_add(&autostart_dirs, "/etc/xdg/autostart");
+  autostart_dirs_add(&autostart_dirs, "/usr/share/autostart");
 
   print_config(&cfg);
   printf("\nScanning directories:\n");
-  for (int i = 0; i < dir_count; i++) {
-    printf("  %d. %s\n", i + 1, autostart_dirs[i]);
+  for (size_t i = 0; i < autostart_dirs.count; i++) {
+    printf("  %zu. %s\n", i + 1, autostart_dirs.values[i]);
   }
   printf("\n");
 
   // Scan directories and queue applications
-  for (int i = 0; i < dir_count; i++) {
-    scan_autostart_dir(autostart_dirs[i], i);
+  for (size_t i = 0; i < autostart_dirs.count; i++) {
+    scan_autostart_dir(autostart_dirs.values[i], i);
   }
 
   // Launch queued applications with staggered delays
   launch_queued_apps();
+
+  cleanup();
 
   return 0;
 }
