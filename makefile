@@ -1,8 +1,12 @@
 CC = cc
 
 CFLAGS = -Wall -Wextra -O2 -std=c17 \
-				 -D_POSIX_C_SOURCE=200809L \
-				 -Iinclude
+         -D_POSIX_C_SOURCE=200809L \
+         -Iinclude
+
+DEBUG_FLAGS = -Wall -Wextra -g -O0 -std=c17 \
+              -D_POSIX_C_SOURCE=200809L \
+              -Iinclude
 
 TARGET = autostart
 
@@ -23,6 +27,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
+debug: CFLAGS := $(DEBUG_FLAGS)
+debug: clean $(TARGET)
+
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 
@@ -32,4 +39,4 @@ install: $(TARGET)
 uninstall:
 	rm -f /usr/local/bin/$(TARGET)
 
-.PHONY: all clean install uninstall
+.PHONY: all clean install uninstall debug
