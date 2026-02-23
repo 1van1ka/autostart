@@ -430,7 +430,7 @@ void autostart_dirs_add(struct Array *a, const char *path) {
   a->count++;
 }
 
-int main(int argc, char **argv) {
+void setup(int argc, char **argv) {
   // Get home directory
   const char *home = getenv("HOME");
   if (!home) {
@@ -451,8 +451,9 @@ int main(int argc, char **argv) {
   snprintf(buf, MAX_PATH, "%s/.config/autostart", home);
   autostart_dirs_add(&autostart_dirs, buf);
   autostart_dirs_add(&autostart_dirs, "/etc/xdg/autostart");
-  autostart_dirs_add(&autostart_dirs, "/usr/share/autostart");
+}
 
+void run() {
   print_config(&cfg);
   printf("\nScanning directories:\n");
   for (size_t i = 0; i < autostart_dirs.count; i++) {
@@ -467,6 +468,12 @@ int main(int argc, char **argv) {
 
   // Launch queued applications with staggered delays
   launch_queued_apps();
+}
+
+int main(int argc, char **argv) {
+
+  setup(argc, argv);
+  run();
 
   cleanup();
 
