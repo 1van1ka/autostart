@@ -71,10 +71,6 @@ int config_load(struct Config *cfg, const char *path) {
 
         token = strtok(NULL, ",");
       }
-    } else if (!strcmp(section, "dirs") && cfg->dir_count < MAX_CFG_DIRS) {
-      struct DirRule *dir_rule = &cfg->dirs[cfg->dir_count++];
-      strncpy(dir_rule->path, k, sizeof(dir_rule->path) - 1);
-      dir_rule->allow = !strcmp(v, "block");
     }
   }
 

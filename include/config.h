@@ -4,12 +4,11 @@
 #include <limits.h>
 
 #define MAX_CFG_APPS 128
-#define MAX_CFG_DIRS 32
 
 struct AppRule {
   char name[256];
   int allow;
-  int delay_ms; // -1 если нет
+  int delay_ms; // -1 if will using default value
 };
 
 struct DirRule {
@@ -27,7 +26,7 @@ struct Config {
   struct AppRule apps[MAX_CFG_APPS];
   int app_count;
 
-  struct DirRule dirs[MAX_CFG_DIRS];
+  struct DirRule dirs[2];
   int dir_count;
 };
 
