@@ -428,7 +428,7 @@ void autostart_dirs_add(struct Array *a, const char *path) {
   a->count++;
 }
 
-void setup(int argc, char **argv) {
+void setup(const char *config_file) {
   // Get home directory
   const char *home = getenv("HOME");
   if (!home) {
@@ -444,8 +444,8 @@ void setup(int argc, char **argv) {
   snprintf(user_config, sizeof(user_config), "%s/.config/autostart.conf", home);
   snprintf(system_config, sizeof(system_config), "/etc/xdg/autostart.conf");
 
-  if (argc > 1) {
-    config_load(&cfg, argv[1]);
+  if (config_file) {
+    config_load(&cfg, config_file);
   } else if (access(user_config, F_OK) == 0) {
     config_load(&cfg, user_config);
   } else if (access(system_config, F_OK) == 0) {
@@ -482,9 +482,37 @@ void run() {
   launch_queued_apps();
 }
 
-int main(int argc, char **argv) {
+/*
+ * Printer text of right using
+ * @param None
+ * @return None
+ */
+static void usage() {
+  printf("usage: autostart <options> [...]\n"
+         "options:\n"
+         "  {-v  --version}                Show autostart version\n"
+         "  {-c  --config}     <file>      Use custom configuration file\n"
+         "  {-N  --no-config}              Disable configuration file\n");
+}
 
-  setup(argc, argv);
+int main(int argc, char **argv) {
+  const char *config_file = NULL;
+
+  for (int i = 1; i < argc; i++)
+    /* options without arguments */
+    if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
+      puts("autostart version 0.1"), exit(0);
+    else if (!strcmp(argv[i], "-N") || !strcmp(argv[i], "--no-config"))
+      config_file = NULL;
+    else if (i + 1 == argc) /* option expects an argument but none left */
+      usage(), exit(1);
+    /* options with argument */
+    else if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config"))
+      config_file = argv[++i];
+    else
+      usage(), exit(1);
+
+  setup(config_file);
   run();
 
   cleanup();
