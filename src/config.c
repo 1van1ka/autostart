@@ -25,7 +25,7 @@ void config_init(struct Config *cfg) {
 int config_load(struct Config *cfg, const char *path) {
   FILE *f = fopen(path, "r");
   if (!f)
-    return -1;
+    return 0;
 
   char line[MAX_LINE];
   char section[64] = "";
@@ -75,7 +75,7 @@ int config_load(struct Config *cfg, const char *path) {
   }
 
   fclose(f);
-  return 0;
+  return 1;
 }
 
 /**
@@ -91,19 +91,13 @@ void print_config(const struct Config *cfg) {
 
   printf("\nApplications rules (%d):\n", cfg->app_count);
   for (int i = 0; i < cfg->app_count; i++) {
-    struct AppRule *app = &cfg->apps[i];
+    const struct AppRule *app = &cfg->apps[i];
     printf("  - %s: %s", app->name,
            app->allow ? "ALLOW" : "BLOCK");
     if (app->delay_ms >= 0) {
       printf(", delay: %d ms", app->delay_ms);
     }
     printf("\n");
-  }
-
-  printf("\nDirectory rules (%d):\n", cfg->dir_count);
-  for (int i = 0; i < cfg->dir_count; i++) {
-    struct DirRule *dir = &cfg->dirs[i];
-    printf("  - %s: %s\n", dir->path, dir->allow ? "ALLOW" : "BLOCK");
   }
 
   printf("========================================\n");
@@ -120,17 +114,4 @@ struct AppRule *config_find_app(struct Config *cfg, const char *name) {
     if (!strcmp(cfg->apps[i].name, name))
       return &cfg->apps[i];
   return NULL;
-}
-
-/**
- * Checks if a directory is blocked.
- * @param cfg Pointer to configuration structure.
- * @param path Directory path to check.
- * @return 1 if blocked, 0 otherwise.
- */
-int config_dir_allowed(struct Config *cfg, const char *path) {
-  for (int i = 0; i < cfg->dir_count; i++)
-    if (!strcmp(cfg->dirs[i].path, path))
-      return cfg->dirs[i].allow;
-  return 0;
 }

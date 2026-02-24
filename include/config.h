@@ -25,9 +25,6 @@ struct Config {
 
   struct AppRule apps[MAX_CFG_APPS];
   int app_count;
-
-  struct DirRule dirs[2];
-  int dir_count;
 };
 
 /* lifecycle */
@@ -37,6 +34,5 @@ void print_config(const struct Config *cfg);
 
 /* lookup */
 struct AppRule *config_find_app(struct Config *cfg, const char *name);
-int config_dir_blocked(struct Config *cfg, const char *path);
 
 #endif

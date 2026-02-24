@@ -58,7 +58,7 @@ struct AppQueue {
 static struct AppQueue app_queue;
 static struct Config cfg;
 static struct Array autostart_dirs;
-
+static int use_config_file = 1;
 /*
  * Initialier array of autostart directories
  * @param a dynamic array of autostart dirs
@@ -428,6 +428,26 @@ void autostart_dirs_add(struct Array *a, const char *path) {
   a->count++;
 }
 
+const char *get_config_file(const char *config_file, const char *home) {
+  static char path[MAX_PATH];
+
+  if (!use_config_file)
+    return NULL;
+
+  if (config_file)
+    return config_file;
+
+  snprintf(path, MAX_PATH, "%s/.config/autostart.conf", home);
+  if (access(path, F_OK) == 0)
+    return path;
+
+  snprintf(path, MAX_PATH, "/etc/xdg/autostart.conf");
+  if (access(path, F_OK) == 0)
+    return path;
+
+  return NULL;
+}
+
 void setup(const char *config_file) {
   // Get home directory
   const char *home = getenv("HOME");
@@ -438,21 +458,8 @@ void setup(const char *config_file) {
 
   config_init(&cfg);
 
-  char user_config[MAX_PATH];
-  char system_config[MAX_PATH];
-
-  snprintf(user_config, sizeof(user_config), "%s/.config/autostart.conf", home);
-  snprintf(system_config, sizeof(system_config), "/etc/xdg/autostart.conf");
-
-  if (config_file) {
-    config_load(&cfg, config_file);
-  } else if (access(user_config, F_OK) == 0) {
-    config_load(&cfg, user_config);
-  } else if (access(system_config, F_OK) == 0) {
-    config_load(&cfg, system_config);
-  } else {
+  if (!config_load(&cfg, get_config_file(config_file, home)))
     fprintf(stderr, "\033[33mWarning:\033[0m No configuration file found\n");
-  }
 
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
@@ -503,7 +510,7 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
       puts("autostart version 0.1"), exit(0);
     else if (!strcmp(argv[i], "-N") || !strcmp(argv[i], "--no-config"))
-      config_file = NULL;
+      use_config_file = 0;
     else if (i + 1 == argc) /* option expects an argument but none left */
       usage(), exit(1);
     /* options with argument */
