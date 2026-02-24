@@ -24,10 +24,8 @@ void config_init(struct Config *cfg) {
  */
 int config_load(struct Config *cfg, const char *path) {
   FILE *f = fopen(path, "r");
-  if (!f) {
-    printf("\033[33m[WARNING]\033[0m No File: %s\n", path);
+  if (!f)
     return -1;
-  }
 
   char line[MAX_LINE];
   char section[64] = "";

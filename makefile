@@ -28,8 +28,10 @@ clean:
 
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/
+	install -m 644 default.conf /etc/xdg/autostart.conf
 
 uninstall:
 	rm -f /usr/local/bin/$(TARGET)
+	rm -f /etc/xdg/autostart.conf
 
 .PHONY: all clean install uninstall debug

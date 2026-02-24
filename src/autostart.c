@@ -438,12 +438,20 @@ void setup(int argc, char **argv) {
 
   config_init(&cfg);
 
-  if (argc > 1)
+  char user_config[MAX_PATH];
+  char system_config[MAX_PATH];
+
+  snprintf(user_config, sizeof(user_config), "%s/.config/autostart.conf", home);
+  snprintf(system_config, sizeof(system_config), "/etc/xdg/autostart.conf");
+
+  if (argc > 1) {
     config_load(&cfg, argv[1]);
-  else {
-    char config_path[MAX_PATH];
-    snprintf(config_path, sizeof(config_path), "%s/.autostart.conf", home);
-    config_load(&cfg, config_path);
+  } else if (access(user_config, F_OK) == 0) {
+    config_load(&cfg, user_config);
+  } else if (access(system_config, F_OK) == 0) {
+    config_load(&cfg, system_config);
+  } else {
+    fprintf(stderr, "\033[33mWarning:\033[0m No configuration file found\n");
   }
 
   autostart_dirs_init(&autostart_dirs);
