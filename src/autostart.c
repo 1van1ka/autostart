@@ -299,30 +299,26 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
       continue;
     }
 
-    total_found++;
-
     char full_path[MAX_PATH];
     snprintf(full_path, sizeof(full_path), "%s/%s", autostart_dir,
              entry->d_name);
 
     struct DesktopEntry de;
-    if (parse_desktop_file(full_path, &de) && de.valid) {
-      // Skip hidden or no-display entries
-      if (de.hidden || de.nodisplay) {
-        printf("  Skipped (hidden/no-display): %s\n", de.name);
-        continue;
-      }
+    if (parse_desktop_file(full_path, &de)) {
+      total_found++;
 
-      int allowed = 1;
-      for (int i = 0; i < cfg.app_count; i++) {
-        if (strcmp(cfg.apps[i].name, de.name) == 0) {
-          allowed = cfg.apps[i].allow;
-          break;
+      // Get app from config
+      struct AppRule *CfgApp;
+      if ((CfgApp = config_find_app(&cfg, de.name))) {
+        if (!CfgApp->allow) {
+          printf("  Skipped (disallowed by config): %s\n", de.name);
+          continue;
         }
       }
 
-      if (!allowed) {
-        printf("  Skipped (disallowed by config): %s\n", de.name);
+      // Skip hidden or no-display entries
+      if (de.hidden || de.nodisplay) {
+        printf("  Skipped (hidden/no-display): %s\n", de.name);
         continue;
       }
 
@@ -331,6 +327,8 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
         printf("  Skipped (TryExec not found): %s\n", de.name);
         continue;
       }
+
+      queued++;
 
       // Add to queue if there's space
       app_queue_add(&app_queue, de);
@@ -442,6 +440,11 @@ void setup(int argc, char **argv) {
 
   if (argc > 1)
     config_load(&cfg, argv[1]);
+  else {
+    char config_path[MAX_PATH];
+    snprintf(config_path, sizeof(config_path), "%s/.autostart.conf", home);
+    config_load(&cfg, config_path);
+  }
 
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
@@ -455,6 +458,7 @@ void setup(int argc, char **argv) {
 
 void run() {
   print_config(&cfg);
+
   printf("\nScanning directories:\n");
   for (size_t i = 0; i < autostart_dirs.count; i++) {
     printf("  %zu. %s\n", i + 1, autostart_dirs.values[i]);
