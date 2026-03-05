@@ -58,7 +58,7 @@ struct AppQueue {
 static struct AppQueue app_queue;
 static struct Config cfg;
 static struct Array autostart_dirs;
-static int use_config_file = 1;
+
 /*
  * Initialier array of autostart directories
  * @param a dynamic array of autostart dirs
@@ -431,7 +431,7 @@ void autostart_dirs_add(struct Array *a, const char *path) {
 const char *get_config_file(const char *config_file, const char *home) {
   static char path[MAX_PATH];
 
-  if (!use_config_file)
+  if (cfg.use_config)
     return NULL;
 
   if (config_file)
@@ -456,10 +456,9 @@ void setup(const char *config_file) {
     home = pw->pw_dir;
   }
 
-  config_init(&cfg);
-
-  if (!config_load(&cfg, get_config_file(config_file, home)))
-    fprintf(stderr, "\033[33mWarning:\033[0m No configuration file found\n");
+  if (cfg.use_config)
+    if (!config_load(&cfg, get_config_file(config_file, home)))
+      fprintf(stderr, "\033[33mWarning:\033[0m No configuration file found\n");
 
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
@@ -505,12 +504,14 @@ static void usage() {
 int main(int argc, char **argv) {
   const char *config_file = NULL;
 
+  config_init(&cfg);
+
   for (int i = 1; i < argc; i++)
     /* options without arguments */
     if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
       puts("autostart version 0.1"), exit(0);
     else if (!strcmp(argv[i], "-N") || !strcmp(argv[i], "--no-config"))
-      use_config_file = 0;
+      cfg.use_config = 0;
     else if (i + 1 == argc) /* option expects an argument but none left */
       usage(), exit(1);
     /* options with argument */

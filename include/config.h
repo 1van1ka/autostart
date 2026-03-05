@@ -17,6 +17,8 @@ struct DirRule {
 };
 
 struct Config {
+  int use_config;
+
   int startup_delay_ms;
   int delay_ms;
 

@@ -12,6 +12,7 @@
  */
 void config_init(struct Config *cfg) {
   memset(cfg, 0, sizeof(*cfg));
+  cfg->use_config = 1;
   cfg->delay_ms = 200;
 }
 
