@@ -1,5 +1,4 @@
 #include "config.h"
-#include "log.h"
 #include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +21,7 @@ void config_init(struct Config *cfg) {
  * Supports sections: [general], [apps], [dirs].
  * @param cfg Pointer to configuration structure to fill.
  * @param path Path to configuration file.
- * @return 0 on success, -1 on failure to open file.
+ * @return 1 on success, 0 on failure to open file.
  */
 int config_load(struct Config *cfg, const char *path) {
   FILE *f = fopen(path, "r");
@@ -49,16 +48,30 @@ int config_load(struct Config *cfg, const char *path) {
     char *k = trim(key);
     char *v = trim(val);
 
+    // section general
     if (!strcmp(section, "general")) {
       if (!strcmp(k, "startup_delay"))
         cfg->startup_delay_ms = atoi(v);
+
       else if (!strcmp(k, "delay"))
         cfg->delay_ms = atoi(v);
+
+      else if (!strcmp(k, "log_level")) {
+        cfg->log_level = atoi(v);
+        if (cfg->log_level < LOG_INFO)
+          cfg->log_level = LOG_INFO;
+        else if (cfg->log_level > LOG_DEF)
+          cfg->log_level = LOG_DEF;
+      }
+
+      // section apps
     } else if (!strcmp(section, "apps") && cfg->app_count < MAX_CFG_APPS) {
       struct AppRule *app_rule = &cfg->apps[cfg->app_count++];
+
       strncpy(app_rule->name, k, sizeof(app_rule->name) - 1);
       app_rule->name[sizeof(app_rule->name) - 1] = '\0';
-      app_rule->allow = 1;     // default policy
+
+      app_rule->allow = 1;    // default policy
       app_rule->delay_ms = 0; // default delay
 
       char *token = strtok(v, ",");

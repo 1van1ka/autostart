@@ -2,26 +2,30 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+void log_init(enum log level) { LOG_LEVEL = level; }
+
 void log_msg(enum log level, const char *fmt, ...) {
+  if (level < LOG_LEVEL)
+    return;
   va_list args;
   va_start(args, fmt);
 
+  FILE *out = (level == LOG_ERR) ? stderr : stdout;
+
   switch (level) {
   case LOG_INFO:
-    printf("\033[32m[INFO] ");
+    fprintf(out, "\033[32m[INFO]\033[0m ");
     break;
   case LOG_WARN:
-    printf("\033[33m[WARN] ");
+    fprintf(out, "\033[33m[WARN]\033[0m ");
     break;
   case LOG_ERR:
-    fprintf(stderr, "\033[31m[ERR ] ");
+    fprintf(out, "\033[31m[ERR ]\033[0m ");
     break;
   case LOG_DEF:
     break;
   }
 
-  printf("\033[0m");
-  vprintf(fmt, args);
-
+  vfprintf(out, fmt, args);
   va_end(args);
 }

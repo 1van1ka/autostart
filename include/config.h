@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <limits.h>
+#include "log.h"
 
 #define MAX_CFG_APPS 128
 
@@ -22,7 +23,7 @@ struct Config {
   int startup_delay_ms;
   int delay_ms;
 
-  int log_level;
+  enum log log_level;
   char log_file[PATH_MAX];
 
   struct AppRule apps[MAX_CFG_APPS];

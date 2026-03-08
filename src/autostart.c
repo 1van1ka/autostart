@@ -458,6 +458,8 @@ void setup(const char *config_file) {
     if (!config_load(&cfg, get_config_file(config_file, home)))
       log_msg(LOG_WARN, "No configuration file found\n");
 
+  log_init(cfg.log_level);
+
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
 
