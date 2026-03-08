@@ -13,6 +13,7 @@
  */
 
 #include "config.h"
+#include "log.h"
 #include "util.h"
 #include <dirent.h>
 #include <errno.h>
@@ -109,6 +110,7 @@ void cleanup_autostart_dirs() {
 }
 
 void cleanup_app_queue() { free(app_queue.apps); }
+
 /*
  * Cleaner all dynamic memory allocated
  * @param None
@@ -128,7 +130,7 @@ void cleanup() {
 int parse_desktop_file(const char *filename, struct DesktopEntry *entry) {
   FILE *file = fopen(filename, "r");
   if (!file) {
-    fprintf(stderr, "Error opening file: %s\n", filename);
+    log_msg(LOG_ERR, "Error opening file: %s\n", filename);
     return 0;
   }
 
@@ -250,7 +252,7 @@ int run_command(const char *exec_cmd, const char *work_dir) {
     if (work_dir && *work_dir) {
       if (chdir(work_dir) != 0) {
         // Error message before closing descriptors
-        fprintf(stderr, "Failed to chdir to %s: %s\n", work_dir,
+        log_msg(LOG_ERR, "Failed to chdir to %s: %s\n", work_dir,
                 strerror(errno));
       }
     }
@@ -281,12 +283,13 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
   DIR *dir = opendir(autostart_dir);
 
   if (!dir) {
-    fprintf(stderr, "\nWarning: Autostart directory does not exist: %s\n",
+    log_msg(LOG_WARN, "Autostart directory does not exist: %s\n",
             autostart_dir);
     return 0;
   }
 
-  printf("\n[Directory %d] Scanning: %s\n", dir_index + 1, autostart_dir);
+  log_msg(LOG_INFO, "[Directory %d] Scanning: %s\n", dir_index + 1,
+          autostart_dir);
 
   struct dirent *entry;
   int total_found = 0;
@@ -311,20 +314,20 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
       struct AppRule *CfgApp;
       if ((CfgApp = config_find_app(&cfg, de.name))) {
         if (!CfgApp->allow) {
-          printf("  Skipped (disallowed by config): %s\n", de.name);
+          log_msg(LOG_INFO, "\tSkipped (disallowed by config): %s\n", de.name);
           continue;
         }
       }
 
       // Skip hidden or no-display entries
       if (de.hidden || de.nodisplay) {
-        printf("  Skipped (hidden/no-display): %s\n", de.name);
+        log_msg(LOG_INFO, "\tSkipped (hidden/no-display): %s\n", de.name);
         continue;
       }
 
       // Check if TryExec exists
       if (!check_tryexec(de.tryexec)) {
-        printf("  Skipped (TryExec not found): %s\n", de.name);
+        log_msg(LOG_INFO, "\tSkipped (TryExec not found): %s\n", de.name);
         continue;
       }
 
@@ -332,16 +335,15 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
 
       // Add to queue if there's space
       app_queue_add(&app_queue, de);
-      printf("  Queued: %s\n", de.name);
+      log_msg(LOG_INFO, "\tQueued: %s\n", de.name);
     }
   }
 
   closedir(dir);
 
-  printf("\n  --- Summary for %s ---\n", autostart_dir);
-  printf("  Total .desktop files found: %d\n", total_found);
-  printf("  Queued for launch: %d\n", queued);
-  printf("  Skipped: %d\n", total_found - queued);
+  log_msg(LOG_INFO, "\t--- Summary for %s ---\n", autostart_dir);
+  log_msg(LOG_INFO, "\tQueued for launch: %d of %d founded\n\n", queued,
+          total_found);
 
   return queued;
 }
@@ -353,37 +355,33 @@ void launch_queued_apps() {
   int success_count = 0;
 
   if (app_queue.count == 0) {
-    printf("\nNo applications to launch.\n");
+    log_msg(LOG_WARN, "No applications to launch.\n");
     return;
   }
 
-  printf("\n========================================\n");
-  printf("Launching %ld apps with %dms delay\n", app_queue.count, cfg.delay_ms);
+  log_msg(LOG_INFO, "Launching %ld apps with %dms delay\n", app_queue.count,
+          cfg.delay_ms);
 
   // Create a thread for each application
   for (size_t i = 0; i < app_queue.count; i++) {
     int delay = i ? cfg.delay_ms : cfg.startup_delay_ms;
+
     // Sleep for the calculated delay
     struct timespec ts = {.tv_sec = delay / 1000,
                           .tv_nsec = (delay % 1000) * 1000000L};
     nanosleep(&ts, NULL);
 
-    printf("[%ld/%ld] ", i + 1, app_queue.count);
+    int status = run_command(app_queue.apps[i].exec, app_queue.apps[i].path);
 
-    if (run_command(app_queue.apps[i].exec, app_queue.apps[i].path)) {
-      printf("Access ");
+    if (status)
       success_count++;
-    } else {
-      printf("Deny ");
-    }
-    printf("launching: %s\n", app_queue.apps[i].name);
+
+    log_msg(LOG_INFO, "\t[%ld/%ld] %s %s\n", i + 1, app_queue.count,
+            status ? "Access" : "Deny", app_queue.apps[i].name);
   }
 
-  printf("========================================\n");
-  printf("Launch completed\n");
-  printf("Total:      %ld\n", app_queue.count);
-  printf("Successful: %d\n", success_count);
-  printf("Failed:     %ld\n", app_queue.count - success_count);
+  log_msg(LOG_DEF, "Launch completed (%d of %zu)\n", success_count,
+          app_queue.count);
 }
 
 /*
@@ -458,7 +456,7 @@ void setup(const char *config_file) {
 
   if (cfg.use_config)
     if (!config_load(&cfg, get_config_file(config_file, home)))
-      fprintf(stderr, "\033[33mWarning:\033[0m No configuration file found\n");
+      log_msg(LOG_WARN, "No configuration file found\n");
 
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
@@ -472,12 +470,6 @@ void setup(const char *config_file) {
 
 void run() {
   print_config(&cfg);
-
-  printf("\nScanning directories:\n");
-  for (size_t i = 0; i < autostart_dirs.count; i++) {
-    printf("  %zu. %s\n", i + 1, autostart_dirs.values[i]);
-  }
-  printf("\n");
 
   // Scan directories and queue applications
   for (size_t i = 0; i < autostart_dirs.count; i++) {

@@ -1,4 +1,5 @@
 #include "config.h"
+#include "log.h"
 #include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,15 +58,15 @@ int config_load(struct Config *cfg, const char *path) {
       struct AppRule *app_rule = &cfg->apps[cfg->app_count++];
       strncpy(app_rule->name, k, sizeof(app_rule->name) - 1);
       app_rule->name[sizeof(app_rule->name) - 1] = '\0';
-      app_rule->allow = 1; // default policy
-      app_rule->delay_ms = -1;     // default delay
+      app_rule->allow = 1;     // default policy
+      app_rule->delay_ms = 0; // default delay
 
       char *token = strtok(v, ",");
       while (token) {
         char *t = trim(token);
 
         if (!strncmp(t, "allow:", 6)) {
-            app_rule->allow = atoi(t + 6);
+          app_rule->allow = atoi(t + 6);
         } else if (!strncmp(t, "delay:", 6)) {
           app_rule->delay_ms = atoi(t + 6);
         }
@@ -84,24 +85,19 @@ int config_load(struct Config *cfg, const char *path) {
  * @param cfg Pointer to configuration structure.
  */
 void print_config(const struct Config *cfg) {
-  printf("=== Current Config =====================\n");
-  printf("Startup delay: %d ms\n", cfg->startup_delay_ms);
-  printf("Delay between apps: %d ms\n", cfg->delay_ms);
-  printf("Log level: %d\n", cfg->log_level);
-  printf("Log file: %s\n", cfg->log_file);
+  log_msg(LOG_INFO, "=== Current Config =====================\n");
+  log_msg(LOG_INFO, "Startup delay: %d ms\n", cfg->startup_delay_ms);
+  log_msg(LOG_INFO, "Delay between apps: %d ms\n", cfg->delay_ms);
+  log_msg(LOG_INFO, "Log level: %d\n", cfg->log_level);
+  log_msg(LOG_INFO, "Log file: %s\n", cfg->log_file);
 
-  printf("\nApplications rules (%d):\n", cfg->app_count);
+  log_msg(LOG_INFO, "Applications rules (%d):\n", cfg->app_count);
   for (int i = 0; i < cfg->app_count; i++) {
     const struct AppRule *app = &cfg->apps[i];
-    printf("  - %s: %s", app->name,
-           app->allow ? "ALLOW" : "BLOCK");
-    if (app->delay_ms >= 0) {
-      printf(", delay: %d ms", app->delay_ms);
-    }
-    printf("\n");
+    log_msg(LOG_INFO, "\t- %s: %s with delay: %d\n", app->name,
+            app->allow ? "ALLOW" : "BLOCK", app->delay_ms);
   }
-
-  printf("========================================\n");
+  log_msg(LOG_INFO, "========================================\n\n");
 }
 
 /**
