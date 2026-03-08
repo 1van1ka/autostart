@@ -454,16 +454,17 @@ void setup(const char *config_file) {
     home = pw->pw_dir;
   }
 
+  char buf[MAX_PATH];
+
   if (cfg.use_config)
     if (!config_load(&cfg, get_config_file(config_file, home)))
       log_msg(LOG_WARN, "No configuration file found\n");
 
-  log_init(cfg.log_level);
+  snprintf(buf, MAX_PATH, "%s/.local/state/autostart.log", home);
+  log_init(cfg.log_level, buf);
 
   autostart_dirs_init(&autostart_dirs);
   app_queue_init(&app_queue);
-
-  char buf[MAX_PATH];
 
   snprintf(buf, MAX_PATH, "%s/.config/autostart", home);
   autostart_dirs_add(&autostart_dirs, buf);

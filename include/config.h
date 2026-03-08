@@ -24,7 +24,6 @@ struct Config {
   int delay_ms;
 
   enum log log_level;
-  char log_file[PATH_MAX];
 
   struct AppRule apps[MAX_CFG_APPS];
   int app_count;

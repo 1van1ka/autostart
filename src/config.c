@@ -113,7 +113,6 @@ void print_config(const struct Config *cfg) {
   log_msg(LOG_INFO, "Startup delay: %d ms\n", cfg->startup_delay_ms);
   log_msg(LOG_INFO, "Delay between apps: %d ms\n", cfg->delay_ms);
   log_msg(LOG_INFO, "Log level: %d\n", cfg->log_level);
-  log_msg(LOG_INFO, "Log file: %s\n", cfg->log_file);
 
   log_msg(LOG_INFO, "Applications rules (%d):\n", cfg->app_count);
   for (int i = 0; i < cfg->app_count; i++) {
