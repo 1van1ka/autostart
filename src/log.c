@@ -1,6 +1,7 @@
 #include "log.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <time.h>
 
 static enum log LOG_LEVEL = LOG_INFO;
 static FILE *FILE_LOG = NULL;
@@ -18,6 +19,15 @@ void log_end() { fclose(FILE_LOG); }
 static void log_file(enum log level, va_list args, const char *fmt) {
   if (!FILE_LOG)
     return;
+
+  char ts[20];
+  time_t now = time(NULL);
+  struct tm tm;
+  localtime_r(&now, &tm);
+  strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", &tm);
+
+  fprintf(FILE_LOG, "%s ", ts);
+
 
   switch (level) {
   case LOG_INFO:
