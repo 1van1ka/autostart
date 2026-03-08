@@ -431,7 +431,7 @@ void autostart_dirs_add(struct Array *a, const char *path) {
 const char *get_config_file(const char *config_file, const char *home) {
   static char path[MAX_PATH];
 
-  if (cfg.use_config)
+  if (!cfg.use_config)
     return NULL;
 
   if (config_file)
