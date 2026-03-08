@@ -119,6 +119,7 @@ void cleanup_app_queue() { free(app_queue.apps); }
 void cleanup() {
   cleanup_autostart_dirs();
   cleanup_app_queue();
+  log_end();
 }
 
 /**
