@@ -2,6 +2,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+static enum log LOG_LEVEL = LOG_INFO;
+
 void log_init(enum log level) { LOG_LEVEL = level; }
 
 void log_msg(enum log level, const char *fmt, ...) {

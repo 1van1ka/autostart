@@ -78,10 +78,21 @@ int config_load(struct Config *cfg, const char *path) {
       while (token) {
         char *t = trim(token);
 
-        if (!strncmp(t, "allow:", 6)) {
-          app_rule->allow = atoi(t + 6);
-        } else if (!strncmp(t, "delay:", 6)) {
-          app_rule->delay_ms = atoi(t + 6);
+        char *colon = strchr(t, ':');
+        if (!colon) {
+          token = strtok(NULL, ",");
+          continue;
+        }
+
+        *colon = '\0';
+
+        char *key = trim(t);
+        char *val = trim(colon + 1);
+
+        if (strcmp(key, "allow") == 0) {
+          app_rule->allow = atoi(val);
+        } else if (strcmp(key, "delay") == 0) {
+          app_rule->delay_ms = atoi(val);
         }
 
         token = strtok(NULL, ",");
