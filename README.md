@@ -71,10 +71,7 @@ The launcher fully supports the [XDG Desktop Entry Specification](https://specif
 [INFO] Startup delay: 0 ms
 [INFO] Delay between apps: 238 ms
 [INFO] Log level: 0
-[INFO] Applications rules (4):
-[INFO] 	- firefox: ALLOW with delay: 1000
-[INFO] 	- discord: BLOCK with delay: 0
-[INFO] 	- Telegram: BLOCK with delay: 439
+[INFO] Applications rules (1):
 [INFO] 	- Throne.desktop: BLOCK with delay: 0
 [INFO] ========================================
 
