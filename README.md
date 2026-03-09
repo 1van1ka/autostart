@@ -8,7 +8,6 @@ ___
 - **Filtering** - Automatically skips hidden, no-display, and invalid desktop entries
 - **Staggered startup** - Launches applications with configurable delays to prevent system overload
 - **Background execution** - Applications run detached from terminal in their own session
-- **Thread-safe design** - Uses mutex locks for thread-safe application queuing
 - **Resource efficient** - Minimal memory footprint, no unnecessary dependencies
 
 ## Installation
@@ -52,15 +51,6 @@ Add to your `.xinitrc` or display manager startup script:
 autostart &
 ```
 
-### Configuration
-
-In future will be used configuration file  
-Edit the source code to customize behavior:
-
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `DELAY_MS` | 200 | Delay between application launches (milliseconds) |
-
 ## Desktop File Support
 
 The launcher fully supports the [XDG Desktop Entry Specification](https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html).
@@ -77,59 +67,44 @@ The launcher fully supports the [XDG Desktop Entry Specification](https://specif
 
 ## Example Output
 ```
-Autostart Launcher
-=============================================
-Configuration:
-  Delay between application starts: 200ms
-  Maximum applications: 100
+[INFO] === Current Config =====================
+[INFO] Startup delay: 0 ms
+[INFO] Delay between apps: 238 ms
+[INFO] Log level: 0
+[INFO] Applications rules (4):
+[INFO] 	- firefox: ALLOW with delay: 1000
+[INFO] 	- discord: BLOCK with delay: 0
+[INFO] 	- Telegram: BLOCK with delay: 439
+[INFO] 	- Throne.desktop: BLOCK with delay: 0
+[INFO] ========================================
 
-Scanning directories:
-  1. /home/ivanika/.config/autostart
-  2. /etc/xdg/autostart
-  3. /usr/share/autostart
+[INFO] [Directory 1] Scanning: /home/ivanika/.config/autostart
+[INFO] 	Skipped (disallowed by config): Throne.desktop
+[INFO] 	--- Summary for /home/ivanika/.config/autostart ---
+[INFO] 	Queued for launch: 0 of 1 founded
 
+[INFO] [Directory 2] Scanning: /etc/xdg/autostart
+[INFO] 	Skipped (nodisplay): xfce-polkit-gnome-authentication-agent-1.desktop
+[INFO] 	Queued: blueman.desktop
+[INFO] 	Queued: xfce4-volumed-pulse.desktop
+[INFO] 	Skipped (nodisplay): nm-applet.desktop
+[INFO] 	Queued: xfce4-notifyd.desktop
+[INFO] 	Skipped (nodisplay): at-spi-dbus-bus.desktop
+[INFO] 	Queued: xfce4-power-manager.desktop
+[INFO] 	Skipped (nodisplay): xfce4-screensaver.desktop
+[INFO] 	Skipped (hidden): xfce4-clipman-plugin-autostart.desktop
+[INFO] 	Queued: xfsettingsd.desktop
+[INFO] 	--- Summary for /etc/xdg/autostart ---
+[INFO] 	Queued for launch: 5 of 10 founded
 
-[Directory 1] Scanning: /home/ivanika/.config/autostart
-  Queued: Telegram
-  Queued: Simple Terminal
-  Queued: NetworkManager Applet
-
-  --- Summary for /home/ivanika/.config/autostart ---
-  Total .desktop files found: 3
-  Queued for launch: 3
-  Skipped: 0
-
-[Directory 2] Scanning: /etc/xdg/autostart
-  Skipped (hidden/no-display): AT-SPI D-Bus Bus
-  Skipped (hidden/no-display): User folders update
-  Queued: xfce-polkit
-  Skipped (hidden/no-display): NetworkManager Applet
-
-  --- Summary for /etc/xdg/autostart ---
-  Total .desktop files found: 4
-  Queued for launch: 1
-  Skipped: 3
-
-Warning: Autostart directory does not exist: /usr/share/autostart
-
-========================================
-Launching 4 applications with 200ms delay
-[1/4] Access launching: Telegram
-[2/4] Access launching: Simple Terminal
-[3/4] Access launching: NetworkManager Applet
-[4/4] Access launching: xfce-polkit
-========================================
-Launch completed
-Total:      4
-Successful: 4
-Failed:     0
+[INFO] Launching 5 apps with 238ms delay
+[INFO] 	[1/5] Access blueman.desktop
+[INFO] 	[2/5] Access xfce4-volumed-pulse.desktop
+[INFO] 	[3/5] Access xfce4-notifyd.desktop
+[INFO] 	[4/5] Access xfce4-power-manager.desktop
+[INFO] 	[5/5] Access xfsettingsd.desktop
+Launch completed (5 of 5)
 ```
-
-## Performance
-
-- **Memory usage**: >=0.5 MB resident memory
-- **CPU usage**: Minimal, only during startup scanning
-- **Startup time**: >= 0.1 second for typical autostart directories
 
 ## License
 
