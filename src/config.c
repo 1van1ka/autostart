@@ -68,8 +68,8 @@ int config_load(struct Config *cfg, const char *path) {
     } else if (!strcmp(section, "apps") && cfg->app_count < MAX_CFG_APPS) {
       struct AppRule *app_rule = &cfg->apps[cfg->app_count++];
 
-      strncpy(app_rule->name, k, sizeof(app_rule->name) - 1);
-      app_rule->name[sizeof(app_rule->name) - 1] = '\0';
+      strncpy(app_rule->entry_id, k, sizeof(app_rule->entry_id) - 1);
+      app_rule->entry_id[sizeof(app_rule->entry_id) - 1] = '\0';
 
       app_rule->allow = 1;    // default policy
       app_rule->delay_ms = 0; // default delay
@@ -117,7 +117,7 @@ void print_config(const struct Config *cfg) {
   log_msg(LOG_INFO, "Applications rules (%d):\n", cfg->app_count);
   for (int i = 0; i < cfg->app_count; i++) {
     const struct AppRule *app = &cfg->apps[i];
-    log_msg(LOG_INFO, "\t- %s: %s with delay: %d\n", app->name,
+    log_msg(LOG_INFO, "\t- %s: %s with delay: %d\n", app->entry_id,
             app->allow ? "ALLOW" : "BLOCK", app->delay_ms);
   }
   log_msg(LOG_INFO, "========================================\n\n");
@@ -129,9 +129,10 @@ void print_config(const struct Config *cfg) {
  * @param name Name of the application to find.
  * @return Pointer to AppRule if found, NULL otherwise.
  */
-struct AppRule *config_find_app(struct Config *cfg, const char *name) {
+struct AppRule *config_find_app(struct Config *cfg,
+                                const char *desktop_entry_id) {
   for (int i = 0; i < cfg->app_count; i++)
-    if (!strcmp(cfg->apps[i].name, name))
+    if (!strcmp(cfg->apps[i].entry_id, desktop_entry_id))
       return &cfg->apps[i];
   return NULL;
 }

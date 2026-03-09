@@ -7,9 +7,9 @@
 #define MAX_CFG_APPS 128
 
 struct AppRule {
-  char name[256];
+  char entry_id[256];
   int allow;
-  int delay_ms; // -1 if will using default value
+  int delay_ms;
 };
 
 struct DirRule {

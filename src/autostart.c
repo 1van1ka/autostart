@@ -33,7 +33,7 @@
 #define MAX_PATH 2048
 
 struct DesktopEntry {
-  char name[256];
+  char desktop_entry_id[256];
   char exec[1024];
   char tryexec[256];
   char icon[256];
@@ -41,7 +41,6 @@ struct DesktopEntry {
   int terminal;
   int hidden;
   int nodisplay;
-  int valid;
 };
 
 struct Array {
@@ -135,9 +134,8 @@ int parse_desktop_file(const char *filename, struct DesktopEntry *entry) {
     return 0;
   }
 
-  // Initialize the struct
   memset(entry, 0, sizeof(struct DesktopEntry));
-  entry->valid = 0;
+  int valid = 0;
 
   char line[MAX_LINE];
   bool in_desktop_entry = false;
@@ -175,8 +173,6 @@ int parse_desktop_file(const char *filename, struct DesktopEntry *entry) {
         return 0; // Not an application, skip
       }
       type_is_application = true;
-    } else if (strcmp(key, "Name") == 0) {
-      strncpy(entry->name, value, sizeof(entry->name) - 1);
     } else if (strcmp(key, "Exec") == 0) {
       strncpy(entry->exec, value, sizeof(entry->exec) - 1);
     } else if (strcmp(key, "TryExec") == 0) {
@@ -197,12 +193,11 @@ int parse_desktop_file(const char *filename, struct DesktopEntry *entry) {
   fclose(file);
 
   // Validate required fields
-  if (type_is_application && strlen(entry->name) > 0 &&
-      strlen(entry->exec) > 0) {
-    entry->valid = 1;
+  if (type_is_application && strlen(entry->exec) > 0) {
+    valid = 1;
   }
 
-  return entry->valid;
+  return valid;
 }
 
 /**
@@ -309,26 +304,36 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
 
     struct DesktopEntry de;
     if (parse_desktop_file(full_path, &de)) {
+      strncpy(de.desktop_entry_id, entry->d_name,
+              sizeof(de.desktop_entry_id) - 1);
+      de.desktop_entry_id[sizeof(de.desktop_entry_id) - 1] = '\0';
+
       total_found++;
 
-      // Get app from config
       struct AppRule *CfgApp;
-      if ((CfgApp = config_find_app(&cfg, de.name))) {
+      if ((CfgApp = config_find_app(&cfg, de.desktop_entry_id))) {
         if (!CfgApp->allow) {
-          log_msg(LOG_INFO, "\tSkipped (disallowed by config): %s\n", de.name);
+          log_msg(LOG_INFO, "\tSkipped (disallowed by config): %s\n",
+                  de.desktop_entry_id);
           continue;
         }
       }
 
-      // Skip hidden or no-display entries
-      if (de.hidden || de.nodisplay) {
-        log_msg(LOG_INFO, "\tSkipped (hidden/no-display): %s\n", de.name);
+      // Skip hidden entries
+      if (de.hidden) {
+        log_msg(LOG_INFO, "\tSkipped (hidden): %s\n", de.desktop_entry_id);
+        continue;
+      }
+
+      if (de.nodisplay) {
+        log_msg(LOG_INFO, "\tSkipped (nodisplay): %s\n", de.desktop_entry_id);
         continue;
       }
 
       // Check if TryExec exists
       if (!check_tryexec(de.tryexec)) {
-        log_msg(LOG_INFO, "\tSkipped (TryExec not found): %s\n", de.name);
+        log_msg(LOG_INFO, "\tSkipped (TryExec not found): %s\n",
+                de.desktop_entry_id);
         continue;
       }
 
@@ -336,7 +341,7 @@ int scan_autostart_dir(const char *autostart_dir, int dir_index) {
 
       // Add to queue if there's space
       app_queue_add(&app_queue, de);
-      log_msg(LOG_INFO, "\tQueued: %s\n", de.name);
+      log_msg(LOG_INFO, "\tQueued: %s\n", de.desktop_entry_id);
     }
   }
 
@@ -363,7 +368,6 @@ void launch_queued_apps() {
   log_msg(LOG_INFO, "Launching %ld apps with %dms delay\n", app_queue.count,
           cfg.delay_ms);
 
-  // Create a thread for each application
   for (size_t i = 0; i < app_queue.count; i++) {
     int delay = i ? cfg.delay_ms : cfg.startup_delay_ms;
 
@@ -378,7 +382,7 @@ void launch_queued_apps() {
       success_count++;
 
     log_msg(LOG_INFO, "\t[%ld/%ld] %s %s\n", i + 1, app_queue.count,
-            status ? "Access" : "Deny", app_queue.apps[i].name);
+            status ? "Access" : "Deny", app_queue.apps[i].desktop_entry_id);
   }
 
   log_msg(LOG_DEF, "Launch completed (%d of %zu)\n", success_count,
